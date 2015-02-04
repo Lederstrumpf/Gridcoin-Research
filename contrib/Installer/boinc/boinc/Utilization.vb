@@ -12,7 +12,7 @@ Public Class Utilization
    
     Public ReadOnly Property Version As Double
         Get
-            Return 341
+            Return 351
 
 
         End Get
@@ -213,6 +213,25 @@ Public Class Utilization
             Log("Error while transitioning to frmSQL" + ex.Message)
         End Try
     End Function
+
+    
+    Public Function ShowTicketAdd()
+        Try
+            mfrmTicketAdd = New frmTicketAdd
+            mfrmTicketAdd.Show()
+        Catch ex As Exception
+            Log("Error while transitioning to frmTicketAdd" + ex.Message)
+        End Try
+    End Function
+    Public Function ShowTicketList()
+        Try
+            mfrmTicketList = New frmTicketList
+            mfrmTicketList.Show()
+        Catch ex As Exception
+            Log("Error while transitioning to frmTicketList" + ex.Message)
+        End Try
+    End Function
+
     Public Function ShowTicker()
         Try
             mfrmTicker = New frmLiveTicker
@@ -318,20 +337,31 @@ Public Class Utilization
 
     End Function
     Public Function InsertConfirm(sConfirm As String) As Double
-
         Log(sConfirm)
-
         Dim vConfirm() As String
         vConfirm = Split(sConfirm, "<COL>")
         Dim dAmt As Double = vConfirm(0)
         Dim sFrom As String = vConfirm(1)
         Dim sTo As String = vConfirm(2)
         Dim sTXID As String = vConfirm(3)
-        Dim lOut As Long = mInsertConfirm(dAmt, sFrom, sTo, sTXID)
-
-        Log("Inserted " + Trim(lOut))
+        Dim sOut As String = mInsertConfirm(dAmt, sFrom, sTo, sTXID)
+        Log("Inserted " + Trim(sOut))
         Return 1
+    End Function
+    Public Function SetDebugMode(bMode) As Boolean
+        mbDebugging = bMode
+    End Function
+    Public Function SetSessionInfo(sInfo As String) As Double
+        Dim vSession() As String
+        vSession = Split(sInfo, "<COL>")
+        Try
+            msDefaultGRCAddress = vSession(0)
+            msCPID = vSession(1)
+            mlMagnitude = Val(vSession(2))
+        Catch ex As Exception
+            Log("SetSessionInfo " + ex.Message)
 
+        End Try
     End Function
     
     Public Function AddressUser(sMagnitude As String) As Double

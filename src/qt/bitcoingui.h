@@ -22,6 +22,7 @@ class SendCoinsDialog;
 class SignVerifyMessageDialog;
 class Notificator;
 class RPCConsole;
+class UpgradeDialog;
 
 QT_BEGIN_NAMESPACE
 class QLabel;
@@ -109,6 +110,7 @@ private:
 	QAction *sqlAction;
 	QAction *leaderboardAction;
 	QAction *tickerAction;
+	QAction *ticketListAction;
 
     QAction *verifyMessageAction;
     QAction *aboutAction;
@@ -128,6 +130,7 @@ private:
     Notificator *notificator;
     TransactionView *transactionView;
     RPCConsole *rpcConsole;
+	UpgradeDialog *upgrader;
 
     QMovie *syncIconMovie;
 
@@ -204,9 +207,7 @@ private slots:
 	void rebootClicked();
 	void sqlClicked();
 	void tickerClicked();
-
-	//void leaderboardClicked();
-	//void miningClicked();
+	void ticketListClicked();
 
 
 #ifndef Q_OS_MAC

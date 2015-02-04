@@ -25,8 +25,8 @@ StructCPID GetStructCPID();
 MiningCPID GetNextProject(bool bForce);
 std::string GetBestBlockHash(std::string sCPID);
 
-int SolveNonce(double diff);
-
+int64_t CPIDChronoStart(std::string cpid);
+bool IsCPIDTimeValid(std::string cpid, int64_t locktime);
 
 std::string TestHTTPProtocol(std::string sCPID);
 
@@ -39,7 +39,9 @@ extern std::string TimestampToHRDate(double dtm);
 std::string qtGRCCodeExecutionSubsystem(std::string sCommand);
 
 std::string LegacyDefaultBoincHashArgs();
+double GetChainDailyAvgEarnedByCPID(std::string cpid, int64_t locktime, double& out_payments, double& out_daily_avg_payments);
 
+bool ChainPaymentViolation(std::string cpid, int64_t locktime, double Proposed_Subsidy);
 
 double CoinToDouble(double surrogate);
 
@@ -417,8 +419,7 @@ double GetPoSKernelPS()
     if (IsProtocolV2(nBestHeight))
         result *= STAKE_TIMESTAMP_MASK + 1;
 
-	//if (result > 350000000123) result = 350000000123;
-    return result;
+    return result/100;
 }
 Object blockToJSON(const CBlock& block, const CBlockIndex* blockindex, bool fPrintTransactionDetail)
 {
@@ -486,7 +487,8 @@ Object blockToJSON(const CBlock& block, const CBlockIndex* blockindex, bool fPri
 	result.push_back(Pair("LastPaymentTime",TimestampToHRDate(bb.LastPaymentTime)));
 	result.push_back(Pair("ResearchSubsidy",bb.ResearchSubsidy));
 	double interest = mint-bb.ResearchSubsidy;
-	result.push_back(Pair("Interest",interest));
+	result.push_back(Pair("Interest",bb.InterestSubsidy));
+
 	double blockdiff = GetBlockDifficulty(block.nBits);
 	result.push_back(Pair("GRCAddress",bb.GRCAddress));
 	result.push_back(Pair("Organization",bb.Organization));
@@ -720,29 +722,30 @@ std::string BackupGridcoinWallet()
 {
 
 	printf("Staring Wallet Backup\r\n");
-
 	std::string filename = "grc_" + DateTimeStrFormat("%m-%d-%Y",  GetAdjustedTime()) + ".dat";
 	std::string filename_backup = "backup.dat";
-	
-	std::string standard_filename = "std_" + DateTimeStrFormat("%m-%d-%Y",  GetAdjustedTime()) + ".dat";
+	std::string standard_filename = "wallet_" + DateTimeStrFormat("%m-%d-%Y",  GetAdjustedTime()) + ".dat";
 	std::string source_filename   = "wallet.dat";
-
 	boost::filesystem::path path = GetDataDir() / "walletbackups" / filename;
 	boost::filesystem::path target_path_standard = GetDataDir() / "walletbackups" / standard_filename;
 	boost::filesystem::path source_path_standard = GetDataDir() / source_filename;
 	boost::filesystem::path dest_path_std = GetDataDir() / "walletbackups" / filename_backup;
     boost::filesystem::create_directories(path.parent_path());
 	std::string errors = "";
-	//Copy the standard wallet first:
-	//	fileopen_and_copy(source_path_standard.string().c_str(), target_path_standard.string().c_str());
+	//Copy the standard wallet first:  (1-30-2015)
 	BackupWallet(*pwalletMain, target_path_standard.string().c_str());
-	
-	//Dump all private keys into the Level 2 backup
-	
-	ofstream myBackup;
 
+	//Per Forum, do not dump the keys and abort:
+
+	if (true)
+	{
+			printf("User does not want private keys backed up. Exiting.");
+			return "";
+	}
+					
+	//Dump all private keys into the Level 2 backup
+	ofstream myBackup;
 	myBackup.open (path.string().c_str());
-	
     string strAccount;
 	BOOST_FOREACH(const PAIRTYPE(CTxDestination, string)& item, pwalletMain->mapAddressBook)
     {
@@ -783,13 +786,9 @@ std::string BackupGridcoinWallet()
 	
 	std::string reserve_keys = pwalletMain->GetAllGridcoinKeys();
 	myBackup << reserve_keys;
-
-
 	myBackup.close();
 	fileopen_and_copy(path.string().c_str(),dest_path_std.string().c_str());
-
 	return errors;
-
 
 }
 
@@ -915,6 +914,7 @@ void WriteCPIDToRPC(std::string email, std::string bpk, uint256 block, Array &re
 	entry.push_back(Pair("Stress Test 3 (missing bpk)",result));
 	results.push_back(entry);
 }
+
 
 Value execute(const Array& params, bool fHelp)
 {
@@ -1056,25 +1056,16 @@ Value execute(const Array& params, bool fHelp)
 	}
 	else if (sItem =="nonce")
 	{
-		std::string sParam1 = params[1].get_str();
-		double diff = cdbl(sParam1,0);
-		int nonce = SolveNonce(diff);
-		entry.push_back(Pair("Diff",diff));
-		entry.push_back(Pair("Solved in",nonce));
-		results.push_back(entry);
-
+	
 	}
 	else if (sItem == "testnonce")
 	{
-		entry.push_back(Pair("1",mdPORNonce));
-		mdPORNonce += 12500;
-		entry.push_back(Pair("2",mdPORNonce));
-		results.push_back(entry);
+	
 	
 	}
 	else if (sItem == "genorgkey")
 	{
-			if (params.size() != 3)
+		if (params.size() != 3)
 		{
 			entry.push_back(Pair("Error","You must specify a passphrase and organization name"));
 			results.push_back(entry);
@@ -1104,7 +1095,39 @@ Value execute(const Array& params, bool fHelp)
 		}
 	
 	}
+	else if (sItem == "chainrsa")
+	{
+		if (params.size() != 2)
+		{
+			entry.push_back(Pair("Error","You must specify a cpid"));
+			results.push_back(entry);
+		}
+		else
+		{
+			std::string sParam1 = params[1].get_str();
+			entry.push_back(Pair("CPID",sParam1));
+			//1-17-2015
+			double Payments = 0;
+			double AvgDailyPayments = 0;
+			double DailyOwed = 0;
+			DailyOwed = GetChainDailyAvgEarnedByCPID(sParam1,GetAdjustedTime(),Payments,AvgDailyPayments);
+			bool ChainPaymentApproved = ChainPaymentViolation(sParam1,GetAdjustedTime(),5);
+			entry.push_back(Pair("DailyOwed",DailyOwed));
+			entry.push_back(Pair("AvgPayments",AvgDailyPayments));
+			entry.push_back(Pair("Payments",Payments));
+			entry.push_back(Pair("Chain Payment Approved 5",ChainPaymentApproved));
+			ChainPaymentApproved = ChainPaymentViolation(sParam1,GetAdjustedTime(),100);
+			entry.push_back(Pair("Chain Payment Approved 100",ChainPaymentApproved));
+			ChainPaymentApproved = ChainPaymentViolation(sParam1,GetAdjustedTime(),400);
+			entry.push_back(Pair("Chain Payment Approved 400",ChainPaymentApproved));
+			ChainPaymentApproved = ChainPaymentViolation(sParam1,GetAdjustedTime(),800);
+			entry.push_back(Pair("Chain Payment Approved 800",ChainPaymentApproved));
+			results.push_back(entry);
+	
+		}
 
+
+	}
 	else if (sItem == "testorgkey")
 	{
 		if (params.size() != 3)
@@ -1378,15 +1401,21 @@ Array MagnitudeReport(bool bMine)
 									entry.push_back(Pair("Payment Magnitude",structMag.PaymentMagnitude));
 									entry.push_back(Pair("Payment Timespan (Days)",structMag.PaymentTimespan));
 									entry.push_back(Pair("Magnitude Accuracy",structMag.Accuracy));
-									entry.push_back(Pair("Long Term Owed (14 day projection)",structMag.totalowed));
-									entry.push_back(Pair("Long Term Daily Owed (1 day projection)",structMag.totalowed/14));
-									entry.push_back(Pair("Payments",structMag.payments));
-									entry.push_back(Pair("InterestPayments",structMag.interestPayments));
-									//1-7-2015
+									entry.push_back(Pair("Long Term Owed (14 days)",structMag.totalowed));
+									entry.push_back(Pair("Payments (14 days)",structMag.payments));
+									entry.push_back(Pair("InterestPayments (14 days)",structMag.interestPayments));
 									entry.push_back(Pair("Last Payment Time",TimestampToHRDate(structMag.LastPaymentTime)));
-									entry.push_back(Pair("Current Daily Projection",structMag.owed));
+									entry.push_back(Pair("Total Owed",structMag.owed));
 									entry.push_back(Pair("Next Expected Payment",structMag.owed/2));
-									entry.push_back(Pair("Avg Daily Payments",structMag.payments/14));
+									entry.push_back(Pair("Daily Paid",structMag.payments/14));
+									entry.push_back(Pair("Daily Owed",structMag.totalowed/14));
+									
+									if (structMag.cpid==GlobalCPUMiningCPID.cpid)
+									{
+											int64_t cpid_chrono = CPIDChronoStart(GlobalCPUMiningCPID.cpid);
+											entry.push_back(Pair("Registered Payment Time",TimestampToHRDate(cpid_chrono)));
+									}
+
 									results.push_back(entry);
 						}
 				}
@@ -1681,6 +1710,44 @@ Value listitem(const Array& params, bool fHelp)
 
 	}
 
+	if (sitem == "testcpidtime")
+	{
+
+		Object entry;
+		entry.push_back(Pair("Net",GetAdjustedTime()));
+		entry.push_back(Pair("UTC",TimestampToHRDate(GetAdjustedTime())));
+		
+		int64_t cpid1 = CPIDChronoStart("00565aba8b273e72f5292dd54c2e9d9c");
+		int64_t cpid2 = CPIDChronoStart("02d04a476979ec5526c28c3ad0a7d988");
+		int64_t cpid3 = CPIDChronoStart("9dbd2eb638bfda3dc573a8e5f1ce7a4a");
+		int64_t cpid4 = CPIDChronoStart("d7f6b0c023e06d4797fc257aea29050b");
+		int64_t cpid5 = CPIDChronoStart("f985012508217b233308079b42e2cc1b");
+		entry.push_back(Pair("Cpid1",cpid1));
+		//Test validity
+		bool valid1 = IsCPIDTimeValid("00565aba8b273e72f5292dd54c2e9d9c", cpid1+10);
+		bool valid2 = IsCPIDTimeValid("00565aba8b273e72f5292dd54c2e9d9c", cpid1-1000);
+		bool valid3 = IsCPIDTimeValid("00565aba8b273e72f5292dd54c2e9d9c", cpid1+1000);
+		bool valid4 = IsCPIDTimeValid("00565aba8b273e72f5292dd54c2e9d9c", cpid1-86400+1000);
+		bool valid5 = IsCPIDTimeValid("00565aba8b273e72f5292dd54c2e9d9c", cpid1-86400-5000);
+		bool valid6 = IsCPIDTimeValid("00565aba8b273e72f5292dd54c2e9d9c", cpid1-(86400*2)+100);
+		entry.push_back(Pair("v1",valid1));
+		entry.push_back(Pair("v2",valid2));
+		entry.push_back(Pair("v3",valid3));
+		entry.push_back(Pair("v4",valid4));
+		entry.push_back(Pair("v5",valid5));
+		entry.push_back(Pair("v6",valid6));
+		entry.push_back(Pair("Cpid2",cpid2));
+		entry.push_back(Pair("Cpid3",cpid3));
+		entry.push_back(Pair("Cpid4",cpid4));
+		entry.push_back(Pair("Cpid5",cpid5));
+		entry.push_back(Pair("cpid1UTC",TimestampToHRDate(cpid1)));
+		entry.push_back(Pair("cpid2UTC",TimestampToHRDate(cpid2)));
+		entry.push_back(Pair("cpid3UTC",TimestampToHRDate(cpid3)));
+		entry.push_back(Pair("cpid4UTC",TimestampToHRDate(cpid4)));
+		entry.push_back(Pair("cpid5UTC",TimestampToHRDate(cpid5)));
+		results.push_back(entry);
+	}
+
 
 	if (sitem == "magnitudecsv")
 	{
@@ -1706,12 +1773,10 @@ Value listitem(const Array& params, bool fHelp)
 	{
 	    	results = MagnitudeReport(true);
 			return results;
-	
 	}
 
 	if (sitem == "projects") 
 	{
-
 		for(map<string,StructCPID>::iterator ii=mvBoincProjects.begin(); ii!=mvBoincProjects.end(); ++ii) 
 		{
 
@@ -1728,12 +1793,10 @@ Value listitem(const Array& params, bool fHelp)
 			}
 		}
 		return results;
-
 	}
 
 	if (sitem == "leder")
 	{
-		
 		double subsidy = LederstrumpfMagnitude2(450, GetAdjustedTime());
 		Object entry;
 		entry.push_back(Pair("Mag Out For 450",subsidy));
@@ -1744,15 +1807,11 @@ Value listitem(const Array& params, bool fHelp)
 			entry.push_back(Pair("Mag Out",subsidy));
 		}
 		results.push_back(entry);
-
 	}
-
-
 
 
 	if (sitem == "network") 
 	{
-		
 		for(map<string,StructCPID>::iterator ii=mvNetwork.begin(); ii!=mvNetwork.end(); ++ii) 
 		{
 
@@ -1785,7 +1844,6 @@ Value listitem(const Array& params, bool fHelp)
 	if (sitem=="validcpids") 
 	{
 		//Dump vectors:
-		
 		if (mvCPIDs.size() < 1) 
 		{
 			HarvestCPIDs(false);

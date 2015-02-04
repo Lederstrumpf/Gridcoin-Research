@@ -21,6 +21,9 @@
 
 int64_t GetMaximumBoincSubsidy(int64_t nTime);
 
+std::string RoundToString(double d, int place);
+double CoinToDouble(double surrogate);
+
 
 // Amount column is right-aligned it contains numbers
 static int column_alignments[] = {
@@ -108,7 +111,7 @@ public:
 
             // Determine whether to show transaction or not
             bool showTransaction = (inWallet && TransactionRecord::showTransaction(mi->second));
-			//11-20-2014 - Remove the Orphan Mined Generated and not Accepted TX
+			//Remove the Orphan Mined Generated and not Accepted TX
 
 			if (showTransaction)
             {
@@ -367,6 +370,22 @@ QString TransactionTableModel::lookupAddress(const std::string &address, bool to
     return description;
 }
 
+
+
+
+bool IsPoR(double amt)
+{
+	std::string sAmt = RoundToString(amt,8);
+	if (sAmt.length() > 8)
+	{
+		if (sAmt.substr(sAmt.length()-4,4)=="0124")
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
 QString TransactionTableModel::formatTxType(const TransactionRecord *wtx) const
 {
     switch(wtx->type)
@@ -381,7 +400,7 @@ QString TransactionTableModel::formatTxType(const TransactionRecord *wtx) const
     case TransactionRecord::SendToSelf:
         return tr("Payment to yourself");
     case TransactionRecord::Generated:
-    	if (((wtx->credit + wtx->debit)) >= 25*COIN)
+    	if (((IsPoR(CoinToDouble(wtx->credit + wtx->debit)))))
 			{
 				return tr("Mined - PoR");
 			}
@@ -394,19 +413,20 @@ QString TransactionTableModel::formatTxType(const TransactionRecord *wtx) const
     }
 }
 
+
 QVariant TransactionTableModel::txAddressDecoration(const TransactionRecord *wtx) const
 {
-	double reward = (wtx->credit + wtx->debit)/COIN;
+	double reward = CoinToDouble(wtx->credit + wtx->debit);
 	double max = GetMaximumBoincSubsidy(GetAdjustedTime());
-
-    switch(wtx->type)
+	bool is_por = IsPoR(reward);
+	switch(wtx->type)
     {
     case TransactionRecord::Generated:
-      		if (reward >= 25 && reward < 200)
-	   		{
-	   			return QIcon(":/icons/tx_cpumined");
-	   		}
-			else if (reward >= max*.90)
+		    if (reward >= max*.90)
+			{
+				return QIcon(":/icons/tx_cpumined");
+			}
+         	else if (is_por)
 			{
 				return QIcon(":/icons/gold_cpumined");
 	   		}

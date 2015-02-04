@@ -21,6 +21,10 @@
 #include "bitcoingui.h"
 #include "transactiontablemodel.h"
 #include "addressbookpage.h"
+
+#include "upgradedialog.h"
+#include "upgrader.h"
+
 #include "sendcoinsdialog.h"
 #include "signverifymessagedialog.h"
 #include "optionsdialog.h"
@@ -89,6 +93,7 @@ extern int qtTrackConfirm(std::string txid);
 extern std::string qtGRCCodeExecutionSubsystem(std::string sCommand);
 extern void qtUpdateConfirm(std::string txid);
 extern void qtInsertConfirm(double dAmt, std::string sFrom, std::string sTo, std::string txid);
+extern void qtSetSessionInfo(std::string defaultgrcaddress, std::string cpid, double magnitude);
 
 
 void TallyInBackground();
@@ -169,6 +174,7 @@ BitcoinGUI::BitcoinGUI(QWidget *parent):
     trayIcon(0),
     notificator(0),
     rpcConsole(0),
+	upgrader(0),
     nWeight(0)
 {
     setFixedSize(980, 550);
@@ -303,6 +309,13 @@ BitcoinGUI::BitcoinGUI(QWidget *parent):
 
     rpcConsole = new RPCConsole(this);
     connect(openRPCConsoleAction, SIGNAL(triggered()), rpcConsole, SLOT(show()));
+
+	 upgrader = new UpgradeDialog(this);
+     connect(upgradeAction, SIGNAL(triggered()), upgrader, SLOT(show()));
+     connect(upgradeAction, SIGNAL(triggered()), upgrader, SLOT(upgrade()));
+     connect(downloadAction, SIGNAL(triggered()), upgrader, SLOT(show()));
+     connect(downloadAction, SIGNAL(triggered()), upgrader, SLOT(blocks()));
+	
 
     // Clicking on "Verify Message" in the address book sends you to the verify message tab
     connect(addressBookPage, SIGNAL(verifyMessage(QString)), this, SLOT(gotoVerifyMessageTab(QString)));
@@ -449,15 +462,12 @@ void qtUpdateConfirm(std::string txid)
 void qtInsertConfirm(double dAmt, std::string sFrom, std::string sTo, std::string txid)
 {
 
-	//Public Function InsertConfirm(dAmt As Double, sFrom As String, sTo As String, sTXID As String) As String
-    
 	#if defined(WIN32) && defined(QT_GUI)
 	try
 	{  
 		int result = 0;
 	 	std::string Confirm = RoundToString(dAmt,4) + "<COL>" + sFrom + "<COL>" + sTo + "<COL>" + txid;
 		printf("Inserting confirm %s",Confirm.c_str());
-
 		QString qsConfirm = ToQstring(Confirm);
 		result = globalcom->dynamicCall("InsertConfirm(Qstring)",qsConfirm).toInt();
 	}
@@ -469,6 +479,25 @@ void qtInsertConfirm(double dAmt, std::string sFrom, std::string sTo, std::strin
 }
 
 
+void qtSetSessionInfo(std::string defaultgrcaddress, std::string cpid, double magnitude)
+{
+
+	#if defined(WIN32) && defined(QT_GUI)
+	try
+	{  
+		int result = 0;
+	 	std::string session = defaultgrcaddress + "<COL>" + cpid + "<COL>" + RoundToString(magnitude,1);
+		printf("Setting Session Id %s",session.c_str());
+		QString qsSession = ToQstring(session);
+		result = globalcom->dynamicCall("SetSessionInfo(Qstring)",qsSession).toInt();
+	}
+	catch(...)
+	{
+
+	}
+	#endif
+}
+    
 
 
 std::string FromQString(QString qs)
@@ -745,6 +774,9 @@ void BitcoinGUI::createActions()
 	tickerAction->setStatusTip(tr("Live Ticker"));
 	tickerAction->setMenuRole(QAction::TextHeuristicRole);
 
+	ticketListAction = new QAction(QIcon(":/icons/bitcoin"), tr("&Tickets"), this);
+	ticketListAction->setStatusTip(tr("Tickets"));
+	ticketListAction->setMenuRole(QAction::TextHeuristicRole);
 
 
 //	leaderboardAction = new QAction(QIcon(":/icons/bitcoin"), tr("&Leaderboard"), this);
@@ -798,6 +830,8 @@ void BitcoinGUI::createActions()
 	connect(rebootAction, SIGNAL(triggered()), this, SLOT(rebootClicked()));
 	connect(sqlAction, SIGNAL(triggered()), this, SLOT(sqlClicked()));
 	connect(tickerAction, SIGNAL(triggered()), this, SLOT(tickerClicked()));
+
+	connect(ticketListAction, SIGNAL(triggered()), this, SLOT(ticketListClicked()));
 
 	//connect(leaderboardAction, SIGNAL(triggered()), this, SLOT(leaderboardClicked()));
 
@@ -863,6 +897,7 @@ void BitcoinGUI::createMenuBar()
 	qmAdvanced->addAction(sqlAction);
 	qmAdvanced->addAction(tickerAction);
 
+	qmAdvanced->addAction(ticketListAction);
 
 
 //	QMenu *leaderboard = appMenuBar->addMenu(tr("&Leaderboard"));
@@ -1476,6 +1511,24 @@ void BitcoinGUI::sqlClicked()
 		globalcom = new QAxObject("BoincStake.Utilization");
 	}
     globalcom->dynamicCall("ShowSql()");
+#endif
+
+}
+
+
+void BitcoinGUI::ticketListClicked()
+{
+#ifdef WIN32
+	if (!globalcom)
+	{
+		globalcom = new QAxObject("BoincStake.Utilization");
+	}
+
+			
+	qtSetSessionInfo(DefaultWalletAddress(), GlobalCPUMiningCPID.cpid, GlobalCPUMiningCPID.Magnitude);
+
+
+    globalcom->dynamicCall("ShowTicketList()");
 #endif
 
 }
@@ -2098,29 +2151,22 @@ void BitcoinGUI::updateStakingIcon()
         uint64_t nNetworkWeight = GetPoSKernelPS();
         unsigned nEstimateTime = GetTargetSpacing(nBestHeight) * (nNetworkWeight / ((nWeight/COIN)+.001)) * 1;
 		if (fDebug) printf("StakeIcon Vitals BH %f, NetWeight %f, Weight %f \r\n", (double)GetTargetSpacing(nBestHeight),(double)nNetworkWeight,(double)nWeight);
-
         QString text = GetEstimatedTime(nEstimateTime);
-
         //Halford - 1-9-2015 - Calculate time for POR Block:
 		unsigned int nPOREstimate = (unsigned int)GetPOREstimatedTime(GlobalCPUMiningCPID.RSAWeight);
 		QString PORText = "Estimated time to earn POR Reward: " + GetEstimatedTime(nPOREstimate);
 		if (nPOREstimate == 0) PORText="";
-		
         if (IsProtocolV2(nBestHeight+1))
         {
             nWeight /= COIN;
-            //nNetworkWeight /= COIN;
         }
-		//1-4-2015
-        labelStakingIcon->setPixmap(QIcon(":/icons/staking_on").pixmap(STATUSBAR_ICONSIZE,STATUSBAR_ICONSIZE));
+	    labelStakingIcon->setPixmap(QIcon(":/icons/staking_on").pixmap(STATUSBAR_ICONSIZE,STATUSBAR_ICONSIZE));
         labelStakingIcon->setToolTip(tr("Staking.<br>Your weight is %1<br>Network weight is %2<br><b>Estimated</b> time to earn reward is %3. %4").arg(nWeight).arg(nNetworkWeight).arg(text).arg(PORText));
 		msMiningErrors6 = "Interest: " + FromQString(text);
 		if (nPOREstimate > 0) msMiningErrors6 += "; POR: " + FromQString(GetEstimatedTime(nPOREstimate));
-
     }
     else
     {
-		
         labelStakingIcon->setPixmap(QIcon(":/icons/staking_off").pixmap(STATUSBAR_ICONSIZE,STATUSBAR_ICONSIZE));
         if (pwalletMain && pwalletMain->IsLocked())
 		{

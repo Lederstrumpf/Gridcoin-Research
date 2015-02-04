@@ -614,12 +614,9 @@ bool Upgrader::verifyPath(bfs::path path, bool create)
             return true;
             }
         }
-    else
-        {
-            printf("%s does not exist and could not be created!\n", path.c_str());
-            return false;
-        }
 
+    printf("%s does not exist and could not be created!\n", path.c_str());
+    return false;
 }
 
 std::string Upgrader::targetswitch(int target)

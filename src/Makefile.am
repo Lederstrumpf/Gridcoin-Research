@@ -362,8 +362,8 @@ bitcoind_SOURCES = addrman.cpp \
   util.cpp \
   version.cpp \
   wallet.cpp \
-  walletdb.cpp
-
+  walletdb.cpp \
+  $(BITCOIN_CORE_H)
 
 bitcoind_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
 bitcoind_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)

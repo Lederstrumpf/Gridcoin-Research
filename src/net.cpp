@@ -15,6 +15,10 @@
 #include <boost/array.hpp>
 #include <boost/thread.hpp>
 
+#if !defined(HAVE_MSG_NOSIGNAL)
+#define MSG_NOSIGNAL 0
+#endif
+
 #ifdef WIN32
   #include <string.h>
 #endif 

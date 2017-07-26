@@ -7,7 +7,6 @@ bin_PROGRAMS += qt/bitcoin-qt
 
 # bitcoin qt core #
 QT_TS = \
-  qt/locale/bitcoin_af.ts \
   qt/locale/bitcoin_af_ZA.ts \
   qt/locale/bitcoin_ar.ts \
   qt/locale/bitcoin_be_BY.ts \
@@ -113,10 +112,10 @@ QT_FORMS_UI = \
 
 
 QT_MOC_CPP = \
+  qt/moc_aboutdialog.cpp \
   qt/moc_addressbookpage.cpp \
   qt/moc_addresstablemodel.cpp \
   qt/moc_askpassphrasedialog.cpp \
-  qt/moc_bantablemodel.cpp \
   qt/moc_bitcoinaddressvalidator.cpp \
   qt/moc_bitcoinamountfield.cpp \
   qt/moc_bitcoingui.cpp \
@@ -130,34 +129,38 @@ QT_MOC_CPP = \
   qt/moc_guiutil.cpp \
   qt/moc_macdockiconhandler.cpp \
   qt/moc_macnotificationhandler.cpp \
-  qt/moc_modaloverlay.cpp \
+  qt/moc_monitoreddatamapper.cpp \
   qt/moc_notificator.cpp \
-  qt/moc_openuridialog.cpp \
   qt/moc_optionsdialog.cpp \
   qt/moc_optionsmodel.cpp \
   qt/moc_overviewpage.cpp \
-  qt/moc_peertablemodel.cpp \
-  qt/moc_paymentserver.cpp \
   qt/moc_qvalidatedlineedit.cpp \
   qt/moc_qvaluecombobox.cpp \
-  qt/moc_receivecoinsdialog.cpp \
-  qt/moc_receiverequestdialog.cpp \
-  qt/moc_recentrequeststablemodel.cpp \
   qt/moc_rpcconsole.cpp \
   qt/moc_sendcoinsdialog.cpp \
   qt/moc_sendcoinsentry.cpp \
   qt/moc_signverifymessagedialog.cpp \
-  qt/moc_splashscreen.cpp \
   qt/moc_trafficgraphwidget.cpp \
   qt/moc_transactiondesc.cpp \
   qt/moc_transactiondescdialog.cpp \
   qt/moc_transactionfilterproxy.cpp \
   qt/moc_transactiontablemodel.cpp \
   qt/moc_transactionview.cpp \
-  qt/moc_utilitydialog.cpp \
-  qt/moc_walletframe.cpp \
-  qt/moc_walletmodel.cpp \
-  qt/moc_walletview.cpp
+  qt/moc_upgradedialog.cpp \
+  qt/moc_walletmodel.cpp
+
+#qt/moc_walletview.cpp
+#qt/moc_utilitydialog.cpp
+#qt/moc_walletframe.cpp
+#qt/moc_splashscreen.cpp
+#qt/moc_receivecoinsdialog.cpp
+#qt/moc_receiverequestdialog.cpp
+#qt/moc_recentrequeststablemodel.cpp
+#qt/moc_openuridialog.cpp
+#qt/moc_modaloverlay.cpp
+#qt/moc_peertablemodel.cpp
+#qt/moc_paymentserver.cpp
+
 
 BITCOIN_MM = \
   qt/macdockiconhandler.mm \

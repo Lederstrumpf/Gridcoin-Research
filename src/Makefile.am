@@ -30,7 +30,7 @@ BITCOIN_INCLUDES += $(UNIVALUE_CFLAGS)
 #LIBBITCOIN_CLI=libbitcoin_cli.a
 #LIBBITCOIN_UTIL=libbitcoin_util.a
 #LIBBITCOIN_CRYPTO=crypto/libbitcoin_crypto.a
-#LIBBITCOINQT=qt/libbitcoinqt.a
+LIBBITCOINQT=qt/libbitcoinqt.a
 #LIBSECP256K1=secp256k1/libsecp256k1.la
 
 #if ENABLE_ZMQ
@@ -142,47 +142,33 @@ obj/build.h: FORCE
 #libbitcoin_util_a-clientversion.$(OBJEXT): obj/build.h
 
 # server: shared between bitcoind and bitcoin-qt
-#libbitcoin_server_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) $(MINIUPNPC_CPPFLAGS) $(EVENT_CFLAGS) $(EVENT_PTHREADS_CFLAGS)
-#libbitcoin_server_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-#libbitcoin_server_a_SOURCES = \
-#  addrdb.cpp \
-#  addrman.cpp \
-#  bloom.cpp \
-#  blockencodings.cpp \
-#  chain.cpp \
-#  checkpoints.cpp \
-#  consensus/tx_verify.cpp \
-#  httprpc.cpp \
-#  httpserver.cpp \
-#  init.cpp \
-#  dbwrapper.cpp \
-#  merkleblock.cpp \
+#libbitcoin_server_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) $(MINIUPNPC_CPPFLAGS) $(EVENT_CFLAGS) $(EVENT_PTHREADS_CFLAGS) libbitcoin_server_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS) libbitcoin_server_a_SOURCES = addrman.cpp \ alert.cpp \ beacon.cpp \ bitcoinrpc.cpp \ block.cpp \ boinc.cpp \ checkpoints.cpp \ cpid.cpp \ crypter.cpp \ db.cpp \ init.cpp \ irc.cpp \
+#  kernel.cpp \
+#  key.cpp \
+#  keystore.cpp \
+#  main.cpp \
 #  miner.cpp \
+#  netbase.cpp \
 #  net.cpp \
-#  net_processing.cpp \
 #  noui.cpp \
-#  policy/fees.cpp \
-#  policy/policy.cpp \
-#  policy/rbf.cpp \
-#  pow.cpp \
-#  rest.cpp \
-#  rpc/blockchain.cpp \
-#  rpc/mining.cpp \
-#  rpc/misc.cpp \
-#  rpc/net.cpp \
-#  rpc/rawtransaction.cpp \
-#  rpc/server.cpp \
-#  script/sigcache.cpp \
-#  script/ismine.cpp \
-#  timedata.cpp \
-#  torcontrol.cpp \
-#  txdb.cpp \
-#  txmempool.cpp \
-#  ui_interface.cpp \
-#  validation.cpp \
-#  validationinterface.cpp \
-#  versionbits.cpp \
-#  $(BITCOIN_CORE_H)
+#  pbkdf2.cpp \
+#  protocol.cpp \
+#  rpcblockchain.cpp \
+#  rpcdump.cpp \
+#  rpcmining.cpp \
+#  rpcnet.cpp \
+#  rpcrawtransaction.cpp \
+#  rpcwallet.cpp \
+#  script.cpp \
+#  scrypt.cpp \
+#  sync.cpp \
+#  txdb-leveldb.cpp \
+#  upgrader.cpp \
+#  util.cpp \
+#  version.cpp \
+#  wallet.cpp \
+#  walletdb.cpp \
+#  $(BITCOIN_CORE_H) 
 
 #if ENABLE_ZMQ
 #libbitcoin_zmq_a_CPPFLAGS = $(BITCOIN_INCLUDES) $(ZMQ_CFLAGS)
@@ -290,26 +276,46 @@ obj/build.h: FORCE
 # util: shared between all executables.
 # This library *must* be included to make sure that the glibc
 # backward-compatibility objects and their sanity checks are linked.
-#libbitcoin_util_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
-#libbitcoin_util_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-#libbitcoin_util_a_SOURCES = \
-#  support/lockedpool.cpp \
-#  chainparamsbase.cpp \
-#  clientversion.cpp \
-#  compat/glibc_sanity.cpp \
-#  compat/glibcxx_sanity.cpp \
-#  compat/strnlen.cpp \
-#  fs.cpp \
-#  random.cpp \
-#  rpc/protocol.cpp \
-#  support/cleanse.cpp \
-#  sync.cpp \
-#  threadinterrupt.cpp \
-#  util.cpp \
-#  utilmoneystr.cpp \
-#  utilstrencodings.cpp \
-#  utiltime.cpp \
-#  $(BITCOIN_CORE_H)
+libbitcoin_util_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
+libbitcoin_util_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+libbitcoin_util_a_SOURCES = addrman.cpp \
+  alert.cpp \
+  beacon.cpp \
+  bitcoinrpc.cpp \
+  block.cpp \
+  boinc.cpp \
+  checkpoints.cpp \
+  cpid.cpp \
+  crypter.cpp \
+  db.cpp \
+  init.cpp \
+  irc.cpp \
+  kernel.cpp \
+  key.cpp \
+  keystore.cpp \
+  main.cpp \
+  miner.cpp \
+  netbase.cpp \
+  net.cpp \
+  noui.cpp \
+  pbkdf2.cpp \
+  protocol.cpp \
+  rpcblockchain.cpp \
+  rpcdump.cpp \
+  rpcmining.cpp \
+  rpcnet.cpp \
+  rpcrawtransaction.cpp \
+  rpcwallet.cpp \
+  script.cpp \
+  scrypt.cpp \
+  sync.cpp \
+  txdb-leveldb.cpp \
+  upgrader.cpp \
+  util.cpp \
+  version.cpp \
+  wallet.cpp \
+  walletdb.cpp \
+  $(BITCOIN_CORE_H)
 
 #if GLIBC_BACK_COMPAT
 #libbitcoin_util_a_SOURCES += compat/glibc_compat.cpp

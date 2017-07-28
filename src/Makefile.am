@@ -382,10 +382,10 @@ bitcoind_SOURCES += bitcoind-res.rc
 endif
 
 bitcoind_LDADD = \
+ $(LIBBITCOIN_UTIL) \
  $(LIBLEVELDB) \
  $(LIBLEVELDB_SSE42) \
- $(LIBMEMENV) \
- $(LIBBITCOIN_UTIL)
+ $(LIBMEMENV)
 #  $(LIBBITCOIN_WALLET)
 #  $(LIBBITCOIN_CONSENSUS)
 #  $(LIBBITCOIN_CRYPTO)
@@ -533,9 +533,9 @@ endif
 # include Makefile.bench.include
 # endif
 
-#if ENABLE_QT
-#include Makefile.qt.include
-#endif
+if ENABLE_QT
+include Makefile.qt.include
+endif
 
 # if ENABLE_QT_TESTS
 # include Makefile.qttest.include

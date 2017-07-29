@@ -29,7 +29,7 @@
 #include "signverifymessagedialog.h"
 #include "optionsdialog.h"
 #include "aboutdialog.h"
-#include "votingdialog.h"
+/* #include "votingdialog.h" */
 #include "clientmodel.h"
 #include "walletmodel.h"
 #include "editaddressdialog.h"
@@ -1282,9 +1282,9 @@ void BitcoinGUI::aboutClicked()
 
 void BitcoinGUI::votingClicked()
 {
-    VotingDialog *dlg = new VotingDialog(this);
-    dlg->resetData();
-    dlg->show();
+    /* VotingDialog *dlg = new VotingDialog(this); */
+    /* dlg->resetData(); */
+    /* dlg->show(); */
 }
 
 

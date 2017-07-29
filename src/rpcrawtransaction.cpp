@@ -25,10 +25,10 @@ MiningCPID DeserializeBoincBlock(std::string block);
 extern void Imker(void *kippel);
 extern Upgrader upgrader;
 
-#ifdef QT_GUI
-#include "qt/upgradedialog.h"
-extern Checker checker;
-#endif
+/* #ifdef QT_GUI */
+/* #include "qt/upgradedialog.h" */
+/* extern Checker checker; */
+/* #endif */
 
 std::string GetTxProject(uint256 hash, int& out_blocknumber, int& out_blocktype, double& out_rac)
 {
@@ -83,9 +83,9 @@ Value downloadblocks(const Array& params, bool fHelp)
         else
         {
             boost::thread(Imker, &upgrader);
-            #ifdef QT_GUI
-            QMetaObject::invokeMethod(&checker, "check", Qt::QueuedConnection);
-            #endif
+            /* #ifdef QT_GUI */
+            /* QMetaObject::invokeMethod(&checker, "check", Qt::QueuedConnection); */
+            /* #endif */
             return "Initiated download of blockchain";
         }
 }
@@ -183,9 +183,9 @@ Value upgrade(const Array& params, bool fHelp)
          else
          {
              boost::thread(Imker, &upgrader);
-             #ifdef QT_GUI
-              QMetaObject::invokeMethod(&checker, "check", Qt::QueuedConnection);
-             #endif
+             /* #ifdef QT_GUI */
+             /*  QMetaObject::invokeMethod(&checker, "check", Qt::QueuedConnection); */
+             /* #endif */
              return "Initiated download of client";
         }
 

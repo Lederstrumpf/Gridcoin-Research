@@ -2472,75 +2472,75 @@ Value execute(const Array& params, bool fHelp)
                         }
                         else
                         {
-                            if (!PollAcceptableAnswer(Title,Answer))
-                            {
-                                std::string acceptable_answers = PollAnswers(Title);
-                                entry.push_back(Pair("Error","Sorry, Answer " + Answer + " is not one of the acceptable answers, allowable answers are: " + acceptable_answers + ".  If you are voting multiple choice, please use a semicolon delimited vote string such as : 'dog;cat'."));
-                                results.push_back(entry);
-                            }
-                            else
-                            {
-                                std::string sParam = SerializeBoincBlock(GlobalCPUMiningCPID);
-                                std::string GRCAddress = DefaultWalletAddress();
-                                StructCPID structMag = GetInitializedStructCPID2(GlobalCPUMiningCPID.cpid,mvMagnitudes);
-                                double dmag = structMag.Magnitude;
-                                double poll_duration = PollDuration(Title)*86400;
+                            /* if (!PollAcceptableAnswer(Title,Answer)) */
+                            /* { */
+                            /*     std::string acceptable_answers = PollAnswers(Title); */
+                            /*     entry.push_back(Pair("Error","Sorry, Answer " + Answer + " is not one of the acceptable answers, allowable answers are: " + acceptable_answers + ".  If you are voting multiple choice, please use a semicolon delimited vote string such as : 'dog;cat'.")); */
+                            /*     results.push_back(entry); */
+                            /* } */
+                            /* else */
+                            /* { */
+                            /*     std::string sParam = SerializeBoincBlock(GlobalCPUMiningCPID); */
+                            /*     std::string GRCAddress = DefaultWalletAddress(); */
+                            /*     StructCPID structMag = GetInitializedStructCPID2(GlobalCPUMiningCPID.cpid,mvMagnitudes); */
+                            /*     double dmag = structMag.Magnitude; */
+                            /*     double poll_duration = PollDuration(Title)*86400; */
 
-                                // Prevent Double Voting
-                                std::string cpid1 = GlobalCPUMiningCPID.cpid;
-                                std::string GRCAddress1 = DefaultWalletAddress();
-                                GetEarliestStakeTime(GRCAddress1,cpid1);
-                                int64_t nGRCTime = mvApplicationCacheTimestamp["nGRCTime"];
-                                int64_t nCPIDTime = mvApplicationCacheTimestamp["nCPIDTime"];
-                                double cpid_age = GetAdjustedTime() - nCPIDTime;
-                                double stake_age = GetAdjustedTime() - nGRCTime;
+                            /*     // Prevent Double Voting */
+                            /*     std::string cpid1 = GlobalCPUMiningCPID.cpid; */
+                            /*     std::string GRCAddress1 = DefaultWalletAddress(); */
+                            /*     GetEarliestStakeTime(GRCAddress1,cpid1); */
+                            /*     int64_t nGRCTime = mvApplicationCacheTimestamp["nGRCTime"]; */
+                            /*     int64_t nCPIDTime = mvApplicationCacheTimestamp["nCPIDTime"]; */
+                            /*     double cpid_age = GetAdjustedTime() - nCPIDTime; */
+                            /*     double stake_age = GetAdjustedTime() - nGRCTime; */
 
-                                // Phase II - Prevent Double Voting
+                            /*     // Phase II - Prevent Double Voting */
                                                                                                 
-                                StructCPID structGRC = GetInitializedStructCPID2(GRCAddress,mvMagnitudes);
+                            /*     StructCPID structGRC = GetInitializedStructCPID2(GRCAddress,mvMagnitudes); */
 
                                 
-                                printf("CPIDAge %f,StakeAge %f,Poll Duration %f \r\n",cpid_age,stake_age,poll_duration);
+                            /*     printf("CPIDAge %f,StakeAge %f,Poll Duration %f \r\n",cpid_age,stake_age,poll_duration); */
 
-                                double dShareType= cdbl(GetPollXMLElementByPollTitle(Title,"<SHARETYPE>","</SHARETYPE>"),0);
+                            /*     double dShareType= cdbl(GetPollXMLElementByPollTitle(Title,"<SHARETYPE>","</SHARETYPE>"),0); */
                             
-                                // Share Type 1 == "Magnitude"
-                                // Share Type 2 == "Balance"
-                                // Share Type 3 == "Both"
-                                if (cpid_age < poll_duration) dmag = 0;
-                                if (stake_age < poll_duration) nBalance = 0;
+                            /*     // Share Type 1 == "Magnitude" */
+                            /*     // Share Type 2 == "Balance" */
+                            /*     // Share Type 3 == "Both" */
+                            /*     if (cpid_age < poll_duration) dmag = 0; */
+                            /*     if (stake_age < poll_duration) nBalance = 0; */
 
-                                if ((dShareType == 1) && cpid_age < poll_duration) 
-                                {
-                                    entry.push_back(Pair("Error","Sorry, When voting in a magnitude poll, your CPID must be older than the poll duration."));
-                                    results.push_back(entry);
-                                }
-                                else if (dShareType == 2 && stake_age < poll_duration)
-                                {
-                                    entry.push_back(Pair("Error","Sorry, When voting in a Balance poll, your stake age must be older than the poll duration."));
-                                    results.push_back(entry);
-                                }
-                                else if (dShareType == 3 && stake_age < poll_duration && cpid_age < poll_duration)
-                                {
-                                    entry.push_back(Pair("Error","Sorry, When voting in a Both Share Type poll, your stake age Or your CPID age must be older than the poll duration."));
-                                    results.push_back(entry);
-                                }
-                                else
-                                {
-                                    std::string voter = "<CPIDV2>"+GlobalCPUMiningCPID.cpidv2 + "</CPIDV2><CPID>" 
-										+ GlobalCPUMiningCPID.cpid + "</CPID><GRCADDRESS>" + GRCAddress + "</GRCADDRESS><RND>" 
-										+ hashRand.GetHex() + "</RND><BALANCE>" + RoundToString(nBalance,2) 
-										+ "</BALANCE><MAGNITUDE>" + RoundToString(dmag,0) + "</MAGNITUDE>";
-									// Add the provable balance and the provable magnitude - this goes into effect July 1 2017
-									voter += GetProvableVotingWeightXML();
-									std::string pk = Title + ";" + GRCAddress + ";" + GlobalCPUMiningCPID.cpid;
-									std::string contract = "<TITLE>" + Title + "</TITLE><ANSWER>" + Answer + "</ANSWER>" + voter;
-									std::string result = AddContract("vote",pk,contract);
-									std::string narr = "Your CPID weight is " + RoundToString(dmag,0) + " and your Balance weight is " + RoundToString(nBalance,0) + ".";
-									entry.push_back(Pair("Success",narr + " " + "Your vote has been cast for topic " + Title + ": With an Answer of " + Answer + ": " + result.c_str()));
-									results.push_back(entry);
-                                }
-                            }
+                            /*     if ((dShareType == 1) && cpid_age < poll_duration) */ 
+                            /*     { */
+                            /*         entry.push_back(Pair("Error","Sorry, When voting in a magnitude poll, your CPID must be older than the poll duration.")); */
+                            /*         results.push_back(entry); */
+                            /*     } */
+                            /*     else if (dShareType == 2 && stake_age < poll_duration) */
+                            /*     { */
+                            /*         entry.push_back(Pair("Error","Sorry, When voting in a Balance poll, your stake age must be older than the poll duration.")); */
+                            /*         results.push_back(entry); */
+                            /*     } */
+                            /*     else if (dShareType == 3 && stake_age < poll_duration && cpid_age < poll_duration) */
+                            /*     { */
+                            /*         entry.push_back(Pair("Error","Sorry, When voting in a Both Share Type poll, your stake age Or your CPID age must be older than the poll duration.")); */
+                            /*         results.push_back(entry); */
+                            /*     } */
+                            /*     else */
+                            /*     { */
+                            /*         std::string voter = "<CPIDV2>"+GlobalCPUMiningCPID.cpidv2 + "</CPIDV2><CPID>" */ 
+										/* + GlobalCPUMiningCPID.cpid + "</CPID><GRCADDRESS>" + GRCAddress + "</GRCADDRESS><RND>" */ 
+										/* + hashRand.GetHex() + "</RND><BALANCE>" + RoundToString(nBalance,2) */ 
+										/* + "</BALANCE><MAGNITUDE>" + RoundToString(dmag,0) + "</MAGNITUDE>"; */
+									/* // Add the provable balance and the provable magnitude - this goes into effect July 1 2017 */
+									/* voter += GetProvableVotingWeightXML(); */
+									/* std::string pk = Title + ";" + GRCAddress + ";" + GlobalCPUMiningCPID.cpid; */
+									/* std::string contract = "<TITLE>" + Title + "</TITLE><ANSWER>" + Answer + "</ANSWER>" + voter; */
+									/* std::string result = AddContract("vote",pk,contract); */
+									/* std::string narr = "Your CPID weight is " + RoundToString(dmag,0) + " and your Balance weight is " + RoundToString(nBalance,0) + "."; */
+									/* entry.push_back(Pair("Success",narr + " " + "Your vote has been cast for topic " + Title + ": With an Answer of " + Answer + ": " + result.c_str())); */
+									/* results.push_back(entry); */
+                            /*     } */
+                            /* } */
                         }
                     }
 

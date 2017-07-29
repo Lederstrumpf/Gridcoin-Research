@@ -88,8 +88,46 @@ Module modPersistedDataSystem
             Log("Unable to connect to neural network.")
         End Try
     End Sub
+    Public Function ConstructTargetFileName(sEtag As String) As String
+        Dim sFilename = sEtag + ".gz"
+        Dim sEtagTarget As String = GetGridFolder() + "NeuralNetwork\" + sFilename
+        Return sEtagTarget
+    End Function
+    Public Function GetFileSize(sPath As String) As Double
+        If File.Exists(sPath) = False Then Return 0
+        Dim fi As New FileInfo(sPath)
+        Return fi.Length
+    End Function
+    Public Function DeleteOlderThan(sDirectory As String, lDaysOld As Long, sExtension As String) As Boolean
+        Try
+            Dim Dir1 As New IO.DirectoryInfo(sDirectory)
+            For Each file As IO.FileInfo In Dir1.GetFiles
+                If LCase(file.Extension) = LCase(sExtension) Then
+                    If Not LCase(file.Name).Contains("whitelist") Then
+                        If (Now - file.CreationTime).Days > lDaysOld Then file.Delete()
+                    End If
+                End If
+            Next
+        Catch ex As Exception
+            Log("Unable to delete old file: " + ex.Message)
+            Return False
+        End Try
+        Return True
+    End Function
+
+
     Public Function UnixTimestampToDate(ByVal timestamp As Double) As DateTime
-        Return New DateTime(1970, 1, 1, 0, 0, 0).AddSeconds(timestamp)
+        Try
+            Dim dt1 As New DateTime(1970, 1, 1, 0, 0, 0)
+            Dim dt2 As DateTime = TimeZoneInfo.ConvertTimeToUtc(dt1)
+            dt2 = dt2.AddSeconds(timestamp)
+            Return dt2
+        Catch ex As Exception
+            Log("Unable to convert timestamp " + Trim(timestamp) + " to UTC datetime.")
+            Dim dt3 As New DateTime(1970, 1, 1, 0, 0, 0)
+            dt3 = dt3.AddSeconds(timestamp)
+            Return dt3
+        End Try
     End Function
     Public Function GetMagnitudeContractDetails() As String
         Dim surrogateRow As New Row
@@ -388,10 +426,8 @@ Module modPersistedDataSystem
 
         SoftKill(sPath + "db.dat")
         'Erase the projects
-        SoftKill(sPath + "*.gz")
         SoftKill(sPath + "*master.dat")
         SoftKill(sPath + "*team.xml")
-        SoftKill(sPath + "*team.gz")
     End Sub
     Private Sub ClearWhitelistData()
         Dim sPath As String = GetGridFolder() + "NeuralNetwork\"
@@ -525,7 +561,23 @@ Module modPersistedDataSystem
             UpdateKey("PrimaryCPID", sCPID)
         End If
     End Function
+    Public Sub StoreValue(sDatabase As String, sTable As String, sPK As String, sValue As String)
+        sPK = Replace(sPK, "/", "[fslash]")
+        sPK = Replace(sPK, ".", "[period]")
+        sPK = Replace(sPK, ":", "[colon]")
+        Dim d As New Row
+        d.Expiration = DateAdd(DateInterval.Day, 30, Now)
+        d.Added = Now
+        d.Database = sDatabase
+        d.Table = sTable
+        d.PrimaryKey = sPK
+        d.DataColumn1 = sValue
+        Store(d)
+    End Sub
     Public Function GetDataValue(sDB As String, sTable As String, sPK As String) As Row
+        sPK = Replace(sPK, "/", "[fslash]")
+        sPK = Replace(sPK, ".", "[period]")
+        sPK = Replace(sPK, ":", "[colon]")
         Dim dr As New Row
         dr.Database = sDB
         dr.Table = sTable
@@ -615,7 +667,7 @@ Module modPersistedDataSystem
             surrogateRow1.Database = "CPID"
             surrogateRow1.Table = "CPIDS"
             EraseNeuralNetwork("cpid")
-
+            
             For x As Integer = 0 To UBound(vCPIDs)
                 If Len(vCPIDs(x)) > 20 Then
                     Dim vRow() As String
@@ -989,12 +1041,6 @@ Module modPersistedDataSystem
         Return x
     End Function
 
-    Public Function GetRacFromNeuralNetworkRetired(sCPID As String) As Boolean
-        Dim oNeuralType As New NeuralStructure
-        oNeuralType.PK = sCPID
-        Call ThreadGetRac(oNeuralType)
-        Return True
-    End Function
     Public Function GetRacFromNeuralNetwork(sCPID As String, lMsWait As Long) As Boolean
         Dim lCatastrophicFailures As Long = 0
 TryAgain:
@@ -1122,7 +1168,7 @@ Retry:
         msCurrentNeuralHash = ""
         Dim TotalRAC As Double = 0
         Dim lFailCount As Long = 0
-        If 1 = 1 Then
+        If 1 = 0 Then
             Try
                 'If more than 51% of the network voted on this CPIDs projects today, use that value
                 If GetSupermajorityVoteStatus(sCPID, IIf(mbTestNet, MINIMUM_WITNESSES_REQUIRED_TESTNET, MINIMUM_WITNESSES_REQUIRED_PROD)) Then
@@ -1669,11 +1715,31 @@ Retry:
         Dim iMins As Long = DateDiff(DateInterval.Minute, fi.LastWriteTime, Now)
         Return iMins
     End Function
-    Public Function GetRowAgeInMins(sRow As String) As Double
+    Public Function GetUtcDateTime(dtTime As DateTime) As DateTime
+        'When converting from a date time to a target datetime that falls within the window of a daylight savings time adjustment, an error is thrown since the target is technically no longer a valid date time, so we need to account for this just in case
+        'On July2nd 2017, the Western Sahara had a 2AM to 3AM local time change and an error was thrown when we pulled in a RAC timestamp of 2AM JUL 2 2017 and tried to convert it to UTC
+        'Step 1, try the natural conversion first
+        Try
+            Dim dTime As DateTime = TimeZoneInfo.ConvertTimeToUtc(dtTime)
+            Return dTime
+        Catch ex As Exception
+            'Next try 2 hours back
+            Log("Setting clock 2 hours back.")
+            Try
+                Dim dTime2 As DateTime = DateAdd(DateInterval.Hour, -2, dtTime)
+                Dim dTime2Return As DateTime = TimeZoneInfo.ConvertTimeToUtc(dTime2)
+                Return dTime2Return
+            Catch ex2 As Exception
+                Log("Still unable to convert to UTC from " + Trim(dtTime))
+                Return CDate("1-1-1970")
+            End Try
+        End Try
+    End Function
+    Public Function GetRowAgeInMins(sRow As String, dtSyncTime As DateTime) As Double
         Dim sTS As String = ExtractXML(sRow, "<expavg_time>", "</expavg_time>")
         Dim dStamp As Double = Val(sTS)
         Dim dTime As DateTime = UnixTimestampToDate(dStamp)
-        Dim iMins As Long = DateDiff(DateInterval.Minute, dTime, Now)
+        Dim iMins As Long = DateDiff(DateInterval.Minute, dTime, dtSyncTime)
         Return iMins
     End Function
     Public Function GetUnixFileAge(sPath As String) As Double

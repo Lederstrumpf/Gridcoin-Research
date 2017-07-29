@@ -61,6 +61,7 @@ bool VerifyCPIDSignature(std::string sCPID, std::string sBlockHash, std::string 
 int DownloadBlocks();
 int DetermineCPIDType(std::string cpid);
 extern MiningCPID GetInitializedMiningCPID(std::string name, std::map<std::string, MiningCPID>& vRef);
+std::string GetListOfWithConsensus(std::string datatype);
 extern std::string getHardDriveSerial();
 extern bool IsSuperBlock(CBlockIndex* pIndex);
 extern bool VerifySuperblock(std::string superblock, int nHeight);
@@ -86,7 +87,7 @@ extern std::string getCpuHash();
 std::string getMacAddress();
 std::string TimestampToHRDate(double dtm);
 bool CPIDAcidTest2(std::string bpk, std::string externalcpid);
-
+extern std::string VectorToString(std::vector<unsigned char> v);
 bool HasActiveBeacon(const std::string& cpid);
 extern bool BlockNeedsChecked(int64_t BlockTime);
 extern void FixInvalidResearchTotals(std::vector<CBlockIndex*> vDisconnect, std::vector<CBlockIndex*> vConnect);
@@ -512,6 +513,19 @@ bool PushGridcoinDiagnostics()
         return false;
 }
 
+
+vector<unsigned char> StringToVector(std::string sData)
+{
+        vector<unsigned char> v(sData.begin(), sData.end());
+		return v;
+}
+
+std::string VectorToString(vector<unsigned char> v)
+{
+        std::string s(v.begin(), v.end());
+        return s;
+}
+
 bool FullSyncWithDPORNodes()
 {
             #if defined(WIN32) && defined(QT_GUI)
@@ -534,9 +548,10 @@ bool FullSyncWithDPORNodes()
             
                 std::string errors1 = "";
                 LoadAdminMessages(false,errors1);
-                std::string cpiddata = GetListOf("beacon");
-                std::string sWhitelist = GetListOf("project");
+                std::string cpiddata = GetListOfWithConsensus("beacon");
+		        std::string sWhitelist = GetListOf("project");
                 int64_t superblock_age = GetAdjustedTime() - mvApplicationCacheTimestamp["superblock;magnitudes"];
+				printf(" list of cpids %s \r\n",cpiddata.c_str());
                 double popularity = 0;
                 std::string consensus_hash = GetNeuralNetworkSupermajorityHash(popularity);
                 std::string sAge = RoundToString((double)superblock_age,0);
@@ -545,7 +560,6 @@ bool FullSyncWithDPORNodes()
                 std::string data = "<WHITELIST>" + sWhitelist + "</WHITELIST><CPIDDATA>"
                     + cpiddata + "</CPIDDATA><QUORUMDATA><AGE>" + sAge + "</AGE><HASH>" + consensus_hash + "</HASH><BLOCKNUMBER>" + sBlock + "</BLOCKNUMBER><TIMESTAMP>"
                     + sTimestamp + "</TIMESTAMP><PRIMARYCPID>" + msPrimaryCPID + "</PRIMARYCPID></QUORUMDATA>";
-                //if (fDebug3) printf("Syncing neural network %s \r\n",data.c_str());
                 std::string testnet_flag = fTestNet ? "TESTNET" : "MAINNET";
                 qtExecuteGenericFunction("SetTestNetFlag",testnet_flag);
                 qtSyncWithDPORNodes(data);
@@ -3998,7 +4012,14 @@ bool CBlock::CheckBlock(std::string sCaller, int height1, int64_t Mint, bool fCh
 
     if (bb.cpid != "INVESTOR" && IsProofOfStake() && height1 > nGrandfather && IsResearchAgeEnabled(height1) && BlockNeedsChecked(nTime) && !fLoadingIndex)
     {
-            int64_t nCalculatedResearch = GetProofOfStakeReward(nCoinAge, nFees, bb.cpid, true, 1, nTime,
+		    // 6-4-2017 - Verify researchers stored block magnitude
+		    double dNeuralNetworkMagnitude = CalculatedMagnitude2(bb.cpid, nTime, false);
+			if (bb.Magnitude > 0 && bb.Magnitude > (dNeuralNetworkMagnitude*1.25) && (fTestNet || height1 > 947000))
+			{
+				return error("CheckBlock[ResearchAge] : Researchers block magnitude > neural network magnitude: Block Magnitude %f, Neural Network Magnitude %f, CPID %s ",
+					(double)bb.Magnitude,(double)dNeuralNetworkMagnitude,bb.cpid.c_str());
+			}
+		    int64_t nCalculatedResearch = GetProofOfStakeReward(nCoinAge, nFees, bb.cpid, true, 1, nTime,
                 pindexBest, sCaller + "_checkblock_researcher", OUT_POR, OUT_INTEREST, dAccrualAge, dMagnitudeUnit, dAvgMagnitude);
             if (bb.ResearchSubsidy > ((OUT_POR*1.25)+1))
             {
@@ -5588,8 +5609,8 @@ bool GetEarliestStakeTime(std::string grcaddress, std::string cpid)
         return true;
     }
 
-    if (IsLockTimeWithinMinutes(nLastGRCtallied,100))
-        return true;
+    if (IsLockTimeWithinMinutes(nLastGRCtallied,100) && (mvApplicationCacheTimestamp["nGRCTime"] > 0 ||
+		 mvApplicationCacheTimestamp["nCPIDTime"] > 0))  return true;
 
     nLastGRCtallied = GetAdjustedTime();
     int64_t nGRCTime = 0;
@@ -5621,9 +5642,9 @@ bool GetEarliestStakeTime(std::string grcaddress, std::string cpid)
                         }
                         else
                         {
-                myCPID = pblockindex->GetCPID();
+						    myCPID = pblockindex->GetCPID();
                         }
-                        if (cpid == myCPID && nCPIDTime==0)
+                        if (cpid == myCPID && nCPIDTime==0 && myCPID != "INVESTOR")
                         {
                             nCPIDTime = pblockindex->nTime;
                             nGRCTime = pblockindex->nTime;
@@ -5633,6 +5654,7 @@ bool GetEarliestStakeTime(std::string grcaddress, std::string cpid)
     }
     int64_t EarliestStakedWalletTx = GetEarliestWalletTransaction();
     if (EarliestStakedWalletTx > 0 && EarliestStakedWalletTx < nGRCTime) nGRCTime = EarliestStakedWalletTx;
+	if (cpid=="INVESTOR" && EarliestStakedWalletTx > 0) nGRCTime = EarliestStakedWalletTx;
     if (fTestNet) nGRCTime -= (86400*30);
     if (nGRCTime <= 0)  nGRCTime = GetAdjustedTime();
     if (nCPIDTime <= 0) nCPIDTime = GetAdjustedTime();
@@ -8881,10 +8903,10 @@ bool MemorizeMessage(std::string msg, int64_t nTime, double dAmount, std::string
                         }
                         else if(sMessageAction=="D")
                         {
-                                if (fDebug10) printf("Deleting key type %s Key %s Value %s\r\n",sMessageType.c_str(),sMessageKey.c_str(),sMessageValue.c_str());
-                                DeleteCache(sMessageType,sMessageKey);
-                                fMessageLoaded = true;
-                        }
+									if (fDebug10) printf("Deleting key type %s Key %s Value %s\r\n",sMessageType.c_str(),sMessageKey.c_str(),sMessageValue.c_str());
+									DeleteCache(sMessageType,sMessageKey);
+									fMessageLoaded = true;
+	                    }
                         // If this is a boinc project, load the projects into the coin:
                         if (sMessageType=="project" || sMessageType=="projectmapping")
                         {

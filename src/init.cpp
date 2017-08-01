@@ -21,6 +21,7 @@
 #include "global_objects_noui.hpp"
 
 bool LoadAdminMessages(bool bFullTableScan,std::string& out_errors);
+extern boost::thread_group threadGroup;
 
 StructCPID GetStructCPID();
 bool ComputeNeuralNetworkSupermajorityHashes();
@@ -185,7 +186,7 @@ void HandleSIGHUP(int)
 //
 // Start
 //
-#if !defined(QT_GUI)
+/*#if !defined(QT_GUI)
 bool AppInit(int argc, char* argv[])
 {
 
@@ -276,6 +277,7 @@ int main(int argc, char* argv[])
     return 1;
 }
 #endif
+*/
 
 bool static InitError(const std::string &str)
 {
@@ -498,7 +500,7 @@ bool AppInit2(ThreadHandlerPtr threads)
 
     //Placeholder: Load Remote CPIDs Here
 
-    nNodeLifespan = GetArg("-addrlifespan", 7);    
+    nNodeLifespan = GetArg("-addrlifespan", 7);
     fUseFastIndex = GetBoolArg("-fastindex", false);
 
     nMinerSleep = GetArg("-minersleep", 8000);

@@ -919,7 +919,7 @@ else
   AC_CHECK_LIB([ssl], [main],SSL_LIBS=-lssl, AC_MSG_ERROR(libssl missing))
 
   AC_CHECK_HEADER([zipconf.h],,AC_MSG_ERROR(libzip headers missing))
-  AC_CHECK_LIB([zip], [main],ZIP_LIBS=-lzip, AC_MSG_ERROR(libzip missing))
+  AC_CHECK_LIB([zip], [main],LIBZIP_LIBS=-lzip, AC_MSG_ERROR(libzip missing))
 
   AC_CHECK_HEADER([curl/curl.h],, AC_MSG_ERROR(libcurl headers missing),)
   AC_CHECK_LIB([curl], [main],CURL_LIBS=-lcurl, AC_MSG_ERROR(libcurl missing))
@@ -1213,7 +1213,7 @@ AC_SUBST(MINIUPNPC_LIBS)
 AC_SUBST(CRYPTO_LIBS)
 AC_SUBST(SSL_LIBS)
 AC_SUBST(CURL_LIBS)
-AC_SUBST(ZIP_LIBS)
+AC_SUBST(LIBZIP_LIBS)
 AC_SUBST(EVENT_LIBS)
 AC_SUBST(EVENT_PTHREADS_LIBS)
 AC_SUBST(ZMQ_LIBS)

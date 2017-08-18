@@ -21,8 +21,11 @@ addons:
     - qttools5-dev-tools
     - libminiupnpc-dev
     - libzip-dev
+    - autoconf
+    - automake
 
 script:
+  - ./autogen.sh
   - mkdir build
   - cd build
   - ../configure --with-gui=qt5

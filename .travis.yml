@@ -23,11 +23,7 @@ addons:
     - libzip-dev
 
 script:
-  - mkdir -p src/obj
-  - chmod 755 src/leveldb/build_detect_platform
-  - cd src
-  - make -f makefile.unix DEBUGFLAGS="" USE_UPNP=1
-  - cd ..
-  - qmake "USE_QRCODE=1" "USE_UPNP=1" "NO_UPGRADE=1"
+  - mkdir build
+  - cd build
+  - ../configure --with-gui=qt5
   - make
-

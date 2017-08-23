@@ -18,5 +18,5 @@ define $(package)_stage_cmds
 endef
 
 define $(package)_postprocess_cmds
-  cp -av $($(package)_staging_dir)$(host_prefix)/lib/libzip/include/zipconf.h $($(package)_staging_dir)$(host_prefix)/include/zipconf.h
+  cp $($(package)_staging_dir)$(host_prefix)/lib/libzip/include/zipconf.h $($(package)_staging_dir)$(host_prefix)/include/zipconf.h
 endef

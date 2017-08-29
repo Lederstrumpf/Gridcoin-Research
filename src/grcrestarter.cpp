@@ -3,6 +3,7 @@
 
 // Old VB based NeuralNet.
 double qtPushGridcoinDiagnosticData(std::string data);
+void qtUpdateConfirm(std::string txid);
 int RestartClient();
 int RebootClient();
 void CheckForUpgrade();
@@ -26,17 +27,32 @@ namespace Restarter
 
     int RebootGridcoin()
     {
-       return int RebootClient();
+        return int RebootClient();
     }
 
     void CheckUpgrade()
     {
-        void CheckForUpgrade();
+        return void CheckForUpgrade();
     }
 
     int DownloadGridcoinBlocks()
     {
-        int DownloadBlocks();
+        return int DownloadBlocks();
+    }
+
+    int ReindexGridcoinWallet()
+    {
+        return int ReindexWallet();
+    }
+
+    int CreateGRidcoinRestorePoint()
+    {
+        return int CreateRestorePoint();
+    }
+
+    void UpdateConfirm(std::string txid)
+    {
+        qtUpdateConfirm(std::string txid);
     }
 
 #else
@@ -52,7 +68,7 @@ namespace Restarter
 
     int RebootGridcoin()
     {
-        return 0;
+        return 1;
     }
 
     void CheckUpgrade()
@@ -62,7 +78,22 @@ namespace Restarter
 
     int DownloadGridcoinBlocks()
     {
+        return -1;
+    }
+
+    int ReindexGridcoinWallet()
+    {
         return 0;
+    }
+
+    int CreateGridcoinRestorePoint()
+    {
+        return -1;
+    }
+
+    void UpdateConfirm(std::string txid)
+    {
+        return;
     }
 
 #endif

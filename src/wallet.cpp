@@ -17,6 +17,7 @@
 #include "block.h"
 #include "bitcoinrpc.h"
 #include "util.h"
+#include "grcrestarter.h"
 #include <boost/variant/apply_visitor.hpp>
 #include <script.h>
 
@@ -566,14 +567,14 @@ bool CWallet::AddToWallet(const CWalletTx& wtxIn)
         std::string strCmd = GetArg("-walletnotify", "");
         // Reward Sharing - Added 08-21-2016
         // if (IsCoinBase() || IsCoinStake())
-       
+
         if (wtxIn.IsCoinBase() || wtxIn.IsCoinStake())
         {
             if (fDebug10) printf("\r\nCoinBase:CoinStake\r\n");
             CBlockIndex* pBlk = mapBlockIndex[wtxIn.hashBlock];
             CBlock blk;
             bool r = blk.ReadFromDisk(pBlk);
-            if (r) 
+            if (r)
             {
                 MiningCPID bb = DeserializeBoincBlock(blk.vtx[0].hashBoinc,blk.nVersion);
                 double dResearch = bb.ResearchSubsidy + bb.InterestSubsidy;
@@ -759,7 +760,7 @@ CTxDestination GetCoinstakeDestination(const CWalletTx* wtx,CTxDB& txdb)
             {
                 if (prevout.n < prev.vout.size())
                 {
-                    //Inputs: 
+                    //Inputs:
                     const CTxOut &vout = prev.vout[prevout.n];
                     CTxDestination address;
                     if (ExtractDestination(vout.scriptPubKey, address))
@@ -812,7 +813,7 @@ void CWalletTx::GetAmounts2(list<COutputEntry>& listReceived,
         CTxDestination address;
         if (IsCoinStake())
         {
-            // R Halford - For CoinStake we must extract the address from the input 
+            // R Halford - For CoinStake we must extract the address from the input
             address = GetCoinstakeDestination(this,txdb);
         }
         else
@@ -835,13 +836,13 @@ void CWalletTx::GetAmounts2(list<COutputEntry>& listReceived,
 
         // If we are receiving the output, add it as a "received" entry
         if (fIsMine || IsCoinStake())
-        {   
+        {
             if (IsCoinStake())
-            {   
+            {
                 // For CoinStake, we must calculate the subsidy based on Net Earned due to splitstakes and empty stakes
                 output.amount += -nFee;
                 nFee=0;
-                if (output.amount != 0) 
+                if (output.amount != 0)
                 {
                         listReceived.push_back(output);
                         break;
@@ -1106,7 +1107,7 @@ void CWallet::ReacceptWalletTransactions()
         }
     }
 }
-    
+
 
 void CWalletTx::RelayWalletTransaction(CTxDB& txdb)
 {
@@ -1251,7 +1252,7 @@ void CWallet::AvailableCoins(vector<COutput>& vCoins, bool fOnlyConfirmed, const
         {
             const CWalletTx* pcoin = &(*it).second;
 			int nDepth = pcoin->GetDepthInMainChain();
-		
+
 			if (!fIncludeStakedCoins)
 			{
 				if (!IsFinalTx(*pcoin))
@@ -1277,7 +1278,7 @@ void CWallet::AvailableCoins(vector<COutput>& vCoins, bool fOnlyConfirmed, const
             for (unsigned int i = 0; i < pcoin->vout.size(); i++)
 			{
                 if ((!(pcoin->IsSpent(i)) && IsMine(pcoin->vout[i]) && pcoin->vout[i].nValue >= nMinimumInputValue &&
-                   (!coinControl || !coinControl->HasSelected() || coinControl->IsSelected((*it).first, i))) 
+                   (!coinControl || !coinControl->HasSelected() || coinControl->IsSelected((*it).first, i)))
 	     	 	   || (fIncludeStakedCoins && pcoin->IsCoinStake() && pcoin->GetBlocksToMaturity() > 0 && pcoin->GetDepthInMainChain() > 0))
 				   {
 				        vCoins.push_back(COutput(pcoin, i, nDepth));
@@ -1517,7 +1518,7 @@ bool CWallet::SelectCoins(int64_t nTargetValue, unsigned int nSpendTime, set<pai
 }
 
 // Select some coins without random shuffle or best subset approximation
-bool CWallet::SelectCoinsForStaking(int64_t nTargetValueIn, unsigned int nSpendTime, 
+bool CWallet::SelectCoinsForStaking(int64_t nTargetValueIn, unsigned int nSpendTime,
     std::set<pair<const CWalletTx*,unsigned int> >& setCoinsRet, int64_t& nValueRet) const
 {
     vector<COutput> vCoins;
@@ -1525,14 +1526,14 @@ bool CWallet::SelectCoinsForStaking(int64_t nTargetValueIn, unsigned int nSpendT
 
     setCoinsRet.clear();
     nValueRet = 0;
-    
+
     int64_t nTargetValue = nTargetValueIn;
 
-    //if (GlobalCPUMiningCPID.cpid != "INVESTOR"  && msMiningErrors7 != "Probing coin age") 
+    //if (GlobalCPUMiningCPID.cpid != "INVESTOR"  && msMiningErrors7 != "Probing coin age")
     //{
     //      nTargetValue = nTargetValueIn/2;
     //}
-    
+
     for(const COutput& output : vCoins)
     {
         const CWalletTx *pcoin = output.tx;
@@ -1564,7 +1565,7 @@ bool CWallet::SelectCoinsForStaking(int64_t nTargetValueIn, unsigned int nSpendT
     return true;
 }
 
-bool CWallet::CreateTransaction(const vector<pair<CScript, int64_t> >& vecSend, CWalletTx& wtxNew, CReserveKey& reservekey, 
+bool CWallet::CreateTransaction(const vector<pair<CScript, int64_t> >& vecSend, CWalletTx& wtxNew, CReserveKey& reservekey,
     int64_t& nFeeRet, const CCoinControl* coinControl)
 {
 
@@ -1748,14 +1749,14 @@ bool CWallet::GetStakeWeight(uint64_t& nWeight)
     //Retrieve CPID RSA_WEIGHT
     int64_t RSA_WEIGHT = IsV8Enabled(nBestHeight+1) ? 0 : GetRSAWeightByCPID(GlobalCPUMiningCPID.cpid);
     ////////////////////////////////////////////////////////////////////////////////
-    
+
     LOCK2(cs_main, cs_wallet);
     for (auto const& pcoin : setCoins)
     {
         CTxIndex txindex;
         if (!txdb.ReadTxIndex(pcoin.first->GetHash(), txindex))
             continue;
-        //1-13-2015 
+        //1-13-2015
         if (IsProtocolV2(nBestHeight+1))
         {
             if (nCurrentTime - pcoin.first->nTime > nStakeMinAge)
@@ -1775,8 +1776,8 @@ bool CWallet::GetStakeWeight(uint64_t& nWeight)
             }
         }
     }
-    
-    
+
+
     return true;
 }
 
@@ -1791,7 +1792,7 @@ void NetworkTimer()
     mdMachineTimerLast = GetAdjustedTime();
     if (elapsed < 1) elapsed = 1;
     mdPORNonce += (elapsed*10);
-    if (mdPORNonce > 2147483000) 
+    if (mdPORNonce > 2147483000)
     {
             printf("Resetting...");
             mdPORNonce=0;
@@ -2521,7 +2522,7 @@ std::vector<std::pair<CBitcoinAddress, CBitcoinSecret>> CWallet::GetAllPrivateKe
         assert(keypool.vchPubKey.IsValid());
         CKeyID keyID = keypool.vchPubKey.GetID();
 
-        if (!HaveKey(keyID))  
+        if (!HaveKey(keyID))
         {
             printf("GetAllPrivateKeys: Unknown key in key pool\r\n");
         }

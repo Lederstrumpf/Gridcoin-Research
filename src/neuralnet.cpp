@@ -1,4 +1,4 @@
- #include "neuralnet.h"
+#include "neuralnet.h"
 #include "util.h"
 #include "version.h"
 #include "sync.h"
@@ -19,6 +19,8 @@ extern std::string qtGetNeuralContract(std::string data);
 extern double qtExecuteGenericFunction(std::string function,std::string data);
 extern std::string qtExecuteDotNetStringFunction(std::string function,std::string data);
 extern void qtSyncWithDPORNodes(std::string data);
+void ExecuteCode();
+int64_t IsNeural();
 
 // While transitioning to dotnet the NeuralNet implementation has been split
 // into 3 implementations; Win32 with Qt, Win32 without Qt and the rest.
@@ -64,6 +66,16 @@ namespace NN
         qtExecuteDotNetStringFunction(std::string function, std::string data);
     }
 
+    void ExecuteVBCode()
+    {
+       ExecuteCode();
+    }
+
+    int64_t IsNeuralNet()
+    {
+       return IsNeural();
+    }
+
 #else
     bool IsEnabled()
     {
@@ -99,5 +111,16 @@ namespace NN
     {
         return std::string();
     }
+
+    void ExecuteVBCode()
+    {
+        return;
+    }
+
+    int64_t IsNeuralNet()
+    {
+        return 0;
+    }
+
 #endif
 }

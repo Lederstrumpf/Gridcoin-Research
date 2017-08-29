@@ -13,4 +13,11 @@ namespace Restarter
     void CheckUpgrade();
 
     int DownloadGridcoinBlocks();
+
+    int ReindexGridcoinWallet();
+
+    int CreateGridcoinRestorePoint();
+
+    void UpdateConfirm(std::string txid);
+
 }

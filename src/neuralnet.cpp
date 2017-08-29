@@ -28,7 +28,6 @@ int64_t IsNeural();
 namespace NN
 {
     // Win32 with Qt enabled.
-#if defined(WIN32) && defined(QT_GUI)
     bool IsEnabled()
     {
         return GetArgument("disableneuralnetwork", "false") == "false";
@@ -75,52 +74,4 @@ namespace NN
     {
        return IsNeural();
     }
-
-#else
-    bool IsEnabled()
-    {
-        return false;
-    }
-
-    std::string GetNeuralVersion()
-    {
-        return "0";
-    }
-
-    std::string GetNeuralHash()
-    {
-        return std::string();
-    }
-
-    std::string GetNeuralContract()
-    {
-        return std::string();
-    }
-
-    bool SetTestnetFlag(bool onTestnet)
-    {
-        return false;
-    }
-
-    bool SynchronizeDPOR(const std::string& data)
-    {
-        return false;
-    }
-
-    std::string ExecuteDotNetStringFunction(std::string function, std::string data)
-    {
-        return std::string();
-    }
-
-    void ExecuteVBCode()
-    {
-        return;
-    }
-
-    int64_t IsNeuralNet()
-    {
-        return 0;
-    }
-
-#endif
 }

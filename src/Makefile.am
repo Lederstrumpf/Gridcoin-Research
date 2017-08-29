@@ -5,8 +5,8 @@
 DIST_SUBDIRS = 
 
 AM_LDFLAGS = $(PTHREAD_CFLAGS) $(LIBTOOL_LDFLAGS) $(HARDENED_LDFLAGS)
-AM_CXXFLAGS = $(HARDENED_CXXFLAGS) $(ERROR_CXXFLAGS)
-AM_CPPFLAGS = $(HARDENED_CPPFLAGS)
+AM_CXXFLAGS = $(HARDENED_CXXFLAGS) -fPIC $(ERROR_CXXFLAGS)
+AM_CPPFLAGS = $(HARDENED_CPPFLAGS) -fPIC
 EXTRA_LIBRARIES =
 
 GRIDCOIN_CONFIG_INCLUDES=-I$(builddir)/config
@@ -55,6 +55,7 @@ GRIDCOIN_CORE_H = \
   easy.h \
   fwd.h \
   gridcoin.h \
+  grcrestarter.h \
   init.h \
   irc.h \
   kernel.h \
@@ -65,6 +66,7 @@ GRIDCOIN_CORE_H = \
   mprintf.h \
   mruset.h \
   multi.h \
+  neuralnet.h \
   netbase.h \
   net.h \
   pbkdf2.h \
@@ -115,8 +117,10 @@ libgridcoin_util_a_SOURCES = addrman.cpp \
   kernel.cpp \
   key.cpp \
   keystore.cpp \
+  grcrestarter.cpp \
   main.cpp \
   miner.cpp \
+  neuralnet.cpp \
   netbase.cpp \
   net.cpp \
   noui.cpp \

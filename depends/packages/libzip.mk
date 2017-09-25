@@ -1,8 +1,8 @@
 package=libzip
-$(package)_version=1.2.0
+$(package)_version=1.3.0
 $(package)_download_path=https://nih.at/$(package)/
 $(package)_file_name=$(package)-$($(package)_version).tar.gz
-$(package)_sha256_hash=6cf9840e427db96ebf3936665430bab204c9ebbd0120c326459077ed9c907d9f
+$(package)_sha256_hash=a919350f683ca6194df0a856698b477da9e06416665b883fe4fc23c0e46e6398
 $(package)_dependencies=zlib
 
 define $(package)_config_cmds

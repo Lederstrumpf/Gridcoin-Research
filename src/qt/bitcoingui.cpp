@@ -749,12 +749,11 @@ void BitcoinGUI::createMenuBar()
     qmAdvanced->addAction(faqAction);
     qmAdvanced->addAction(foundationAction);
 //	qmAdvanced->addAction(diagnosticsAction);
-
+     qmAdvanced->addAction(downloadAction);
 #endif /* defined(WIN32) */
     qmAdvanced->addSeparator();
     qmAdvanced->addAction(rebuildAction);
-    qmAdvanced->addAction(downloadAction);
-
+   
     QMenu *help = appMenuBar->addMenu(tr("&Help"));
     help->addAction(openRPCConsoleAction);
     help->addSeparator();
